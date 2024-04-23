@@ -12,11 +12,9 @@ const (
 	port        = 8080 // Default port
 )
 
-// main function
 func main() {
-	// Define endpoints and handlers
 	http.HandleFunc("/mongo", handlers.FetchFromMongo)
-	// http.HandleFunc("/in-memory", inMemoryHandler)
+	http.HandleFunc("/in-memory", handlers.InMemoryHandler)
 
 	// Start server
 	log.Printf("Server listening on port %d\n", port)

@@ -14,10 +14,15 @@ type MongoRecord struct {
 
 // InMemoryRecord represents a record in the in-memory database
 type InMemoryRecord struct {
-	ID          string `json:"id"`
-	Data        string `json:"data"`
+	Key   	string `json:"key"`
+	Value 	string `json:"value"`
 }
 
+type InMemoryResponsePayload struct {
+	Code    int             `json:"code"`
+	Msg     string          `json:"msg"`
+	Records []InMemoryRecord `json:"records,omitempty"` // The records field is omitted if empty
+}
 // RequestPayload for the MongoDB data fetch endpoint
 type RequestPayload struct {
 	StartDate string `json:"startDate"`
@@ -26,7 +31,6 @@ type RequestPayload struct {
 	MaxCount  int    `json:"maxCount"`
 }
 
-// ResponsePayload is the format for the response of both endpoints
 type ResponsePayload struct {
 	Code  int    `json:"code"`
 	Msg   string `json:"msg"`

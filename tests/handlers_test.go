@@ -53,41 +53,28 @@ func TestFetchFromMongo_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// More assertions on responsePayload.Code, responsePayload.Msg, responsePayload.Records
 	assert.Equal(t, 0, responsePayload.Code)
 	assert.Equal(t, "Success", responsePayload.Msg)
 }
 
-// Test cases for error scenarios, in-memory handler tests follow a similar pattern 
+// Test cases for error scenarios
 func TestFetchFromMongo_InvalidPayload(t *testing.T) {
+	handler := http.HandlerFunc(handlers.FetchFromMongo) 
 	// Define an invalid payload (e.g., missing required fields)
 	invalidPayload := map[string]string{
-		"startDate": "2020-01-01", // Let's assume endDate is required and is missing
+		"startDate": "2020-01-01", // assume endDate is required and is missing
 	}
 
 	// Marshal the invalid payload into JSON
 	payloadBytes, err := json.Marshal(invalidPayload)
 	assert.NoError(t, err)
 
-	// Create a new HTTP POST request with the invalid payload
-	req, err := http.NewRequest("POST", "/mongo/fetch", bytes.NewBuffer(payloadBytes))
-	assert.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	// Create a ResponseRecorder to record the response
-	rr := httptest.NewRecorder()
-
-	// Instantiate a new router (assuming you have a function newRouter() that sets up your routes)
-	handler := http.HandlerFunc(handlers.FetchFromMongo)
-
-	// Call the ServeHTTP method directly and pass in our Request and ResponseRecorder
-	handler.ServeHTTP(rr, req)
-
+	rr := performRequest(handler, "POST", "/mongo", payloadBytes)
 	// Check the status code is what we expect
 	assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code")
 
 	// Check the response body is what we expect
-	expectedErrorMessage := "Invalid request payload" // The error message your handler is expected to return
+	expectedErrorMessage := "Invalid request payload" 
 	assert.Contains(t, rr.Body.String(), expectedErrorMessage, "handler returned unexpected body")
 }
 
@@ -110,7 +97,7 @@ func TestFetchFromMongo_MissingDates(t *testing.T) {
 
 
 func TestFetchFromMongo_InvalidStartDate(t *testing.T) {
-	handler := http.HandlerFunc(handlers.FetchFromMongo) // your handler function here
+	handler := http.HandlerFunc(handlers.FetchFromMongo) 
 
 	// Invalid StartDate format
 	payload := models.RequestPayload{
@@ -132,7 +119,7 @@ func TestFetchFromMongo_InvalidStartDate(t *testing.T) {
 }
 
 func TestFetchFromMongo_InvalidEndDate(t *testing.T) {
-	handler := http.HandlerFunc(handlers.FetchFromMongo) // your handler function here
+	handler := http.HandlerFunc(handlers.FetchFromMongo) 
 
 	// Invalid EndDate format
 	payload := models.RequestPayload{
@@ -154,9 +141,64 @@ func TestFetchFromMongo_InvalidEndDate(t *testing.T) {
 }
 
 func TestInMemoryHandler_CreateRecord(t *testing.T) {
-	// ...
+	// Prepare the server and handler
+	server := httptest.NewServer(http.HandlerFunc(handlers.InMemoryHandler))
+	defer server.Close()
+
+	// Create a sample record to POST
+	record := models.InMemoryRecord{Key: "testKey", Value: "testValue"}
+	recordJSON, _ := json.Marshal(record)
+
+	// Create a request to our handler
+	response, err := http.Post(server.URL, "application/json", bytes.NewBuffer(recordJSON))
+	assert.NoError(t, err)
+
+	// Check the status code
+	assert.Equal(t, http.StatusCreated, response.StatusCode)
+
+	// Decode the response body
+	var respPayload models.InMemoryResponsePayload
+	err = json.NewDecoder(response.Body).Decode(&respPayload)
+	assert.NoError(t, err)
+
+	// Validate the response payload
+	assert.Equal(t, 0, respPayload.Code)
+	assert.Equal(t, "Success", respPayload.Msg)
+	assert.NotEmpty(t, respPayload.Records)
+	assert.Equal(t, "testKey", respPayload.Records[0].Key)
+	assert.Equal(t, "testValue", respPayload.Records[0].Value)
 }
 
 func TestInMemoryHandler_GetRecords(t *testing.T) {
-	// ...
+	// Prepare the server and handler
+	server := httptest.NewServer(http.HandlerFunc(handlers.InMemoryHandler))
+	defer server.Close()
+
+	// Assume the inMemoryDb is already populated with a record
+	handlers.InMemoryDb["testKey"] = models.InMemoryRecord{Key: "testKey", Value: "testValue"}
+
+	// Build the GET request
+	req, _ := http.NewRequest("GET", server.URL+"?key=testKey", nil)
+
+	// Create a response recorder (to record the response)
+	responseRecorder := httptest.NewRecorder()
+
+	// Dispatch the request to our handler
+	handler := http.HandlerFunc(handlers.InMemoryHandler)
+	handler.ServeHTTP(responseRecorder, req)
+
+	// Check the status code
+	assert.Equal(t, http.StatusOK, responseRecorder.Code)
+
+	// Decode the response body
+	var respPayload models.InMemoryResponsePayload
+	err := json.NewDecoder(responseRecorder.Body).Decode(&respPayload)
+	assert.NoError(t, err)
+
+	// Validate the response payload
+	assert.Equal(t, 0, respPayload.Code)
+	assert.Equal(t, "Success", respPayload.Msg)
+	assert.NotEmpty(t, respPayload.Records)
+	assert.Equal(t, "testKey", respPayload.Records[0].Key)
+	assert.Equal(t, "testValue", respPayload.Records[0].Value)
 }
