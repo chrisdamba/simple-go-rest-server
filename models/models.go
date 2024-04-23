@@ -36,3 +36,9 @@ type ResponsePayload struct {
 		TotalCount int   `json:"totalCount,omitempty"`
 	} `json:"records"`
 }
+
+
+type ErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"msg"`
+}

@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -35,31 +35,45 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
+	// Parse request payload
+	var payload models.RequestPayload
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()  // This prevents decoding issues with unexpected fields
+	if err := decoder.Decode(&payload); err != nil {
+			respondWithError(w, 1, fmt.Sprintf("Invalid request payload: %v", err))
+			return
+	}
+	// Perform further payload validation as needed
+	if payload.StartDate == "" || payload.EndDate == "" {
+		respondWithError(w, 2, "StartDate and EndDate fields are required")
+		return
+	}
+	if _, err := time.Parse("2006-01-02", payload.StartDate); err != nil {
+		respondWithError(w, 3, "Invalid StartDate format. Please use YYYY-MM-DD.")
+		return
+	}
+	if _, err := time.Parse("2006-01-02", payload.EndDate); err != nil {
+		respondWithError(w, 4, "Invalid EndDate format. Please use YYYY-MM-DD.")
 		return
 	}
 
-	// Parse request payload
-	var payload models.RequestPayload
-	err = json.Unmarshal(body, &payload)
-	if err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+	// Assume `minCount` and `maxCount` are required fields and check them
+	if payload.MinCount < 0 || payload.MaxCount < 0 || payload.MinCount > payload.MaxCount {
+		respondWithError(w, 5, "minCount and maxCount must be non-negative and minCount must not exceed maxCount")
 		return
 	}
 
 	// Connect to MongoDB
 	mongoURI := os.Getenv("MONGO_URI") // Retrieve connection string from environment
 	if mongoURI == "" {
-		fmt.Errorf("MONGO_URI environment variable not set")
+    log.Println("MONGO_URI environment variable not set")
+    respondWithError(w, 6, "MONGO_URI environment variable not set")
+    return
 	}
 	client, err := db.ConnectToMongo(mongoURI)
 	if err != nil {
-		log.Fatal(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+    respondWithError(w, 7, "Error connecting to MongoDB")
+    return
 	}
 	defer client.Disconnect(context.TODO())
 
@@ -125,3 +139,14 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResponse)
 }
 
+
+// respondWithError sends an error response with a given code and message.
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest) // Set the status code to BadRequest for all validation errors
+	errorResponse := models.ErrorResponse{
+		Code:    code,
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResponse)
+}
