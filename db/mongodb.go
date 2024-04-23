@@ -1,39 +1,38 @@
-package main
+package db
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
-	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-
-const dbName   = "getir-case-study"         
-const colName  = "records" 
-
-func connectToMongo() (*mongo.Client, error) {
+// ConnectToMongo connects to MongoDB and returns a client.
+func ConnectToMongo(uri string) (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	// Set client options
-	mongoURI := os.Getenv("MONGODB_URI") // Retrieve connection string from environment
-	if mongoURI == "" {
-		return nil, fmt.Errorf("MONGODB_URI environment variable not set")
-	}
-	clientOptions := options.Client().ApplyURI(mongoURI)
+	clientOptions := options.Client().ApplyURI(uri)
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
+		log.Println("Failed to connect to MongoDB:", err)
 		return nil, fmt.Errorf("error connecting to MongoDB: %v", err)
 	}
 
 	// Check the connection
-	err = client.Ping(context.TODO(), nil)
+	err = client.Ping(ctx, nil)
 	if err != nil {
+		log.Println("Failed to ping MongoDB:", err)
 		return nil, fmt.Errorf("error pinging MongoDB: %v", err)
 	}
 
+	log.Println("Connected to MongoDB")
 	return client, nil
 }
 
@@ -41,3 +40,4 @@ func connectToMongo() (*mongo.Client, error) {
 // fetchFromMongoDB handles POST requests to fetch data from MongoDB.
 func fetchFromMongoDB(w http.ResponseWriter, r *http.Request) {
 	// ...
+}
