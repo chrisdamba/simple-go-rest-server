@@ -1,9 +1,5 @@
 # Simple Go REST Server
 
-
-
-# Go RESTful API without Frameworks
-
 ## Introduction
 
 This project implements a simple RESTful API in Go demonstrating MongoDB integration and in-memory data storage without using any external web frameworks. It includes two primary functionalities:
