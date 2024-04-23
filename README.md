@@ -33,23 +33,42 @@ To get started with this project, you need to have Go installed on your machine 
 
 Follow these steps to install the API on your local machine:
 
-1.  **Clone the repository**
+1. **Clone the repository**
+   ```sh
+   git clone https://github.com/chrisdamba/simple-go-rest-server.git
+   cd simple-go-rest-server
+   ```
 
-```sh
-git clone https://github.com/chrisdamba/simple-go-rest-server.git
-cd simple-go-rest-server
-```
+2. **Set up the environment variable for MongoDB URI**
+   - If using a local MongoDB instance, ensure it's running and note the URI connection string.
+   - The database name should be `getir-case-study` and the collection name should be `records`.
 
-2.  **Set up the environment variable for MongoDB URI**
-```bash
-export MONGO_URI="your_mongodb_uri"
-```
+   ```bash
+   export MONGO_URI="mongodb://localhost:27017"
+   ```
 
-3.  **Build the project**
-```bash
-go build -o api-server
-```
+3. **Populate the database for testing**
+   - You can use the MongoDB shell or a GUI like MongoDB Compass to insert test documents.
+   ```javascript
+   use getir-case-study
+   db.records.insertMany([
+     {
+       "key": "TAKwGc6Jr4i8Z487",
+       "createdAt": ISODate("2017-01-28T01:22:14.398Z"),
+       "totalCount": 2800
+     },
+     {
+       "key": "NAeQ8eX7e5TEg70H",
+       "createdAt": ISODate("2017-01-27T08:19:14.135Z"),
+       "totalCount": 2900
+     }
+   ])
+   ```
 
+4. **Build the project**
+   ```bash
+   go build -o api-server
+   ```
 
 
 ## Running the Application
