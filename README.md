@@ -10,7 +10,6 @@ This project implements a simple RESTful API in Go demonstrating MongoDB integra
 This API is designed to demonstrate the ability to create RESTful services in Go using only the standard library and a MongoDB driver for database interactions.
 
 
-
 ## Features
 
 - **MongoDB Integration:**
@@ -18,10 +17,6 @@ This API is designed to demonstrate the ability to create RESTful services in Go
 - **In-Memory Data Store:**
   - Creates in-memory records with generated IDs.
   - Fetches all stored in-memory records.
-- **REST API Endpoints:**
-  - `/mongo` (POST) - Fetches from MongoDB.
-  - `/in-memory` (POST) - Creates an in-memory record.
-  - `/in-memory` (GET) - Gets all in-memory records.
 
 
 ## Getting Started
@@ -52,7 +47,7 @@ export MONGO_URI="your_mongodb_uri"
 
 3.  **Build the project**
 ```bash
-go build -o 
+go build -o api-server
 ```
 
 
@@ -88,7 +83,10 @@ Example `curl` commands:
 
 Fetch from MongoDB:
 ```sh
-curl -X POST http://localhost:8080/mongo -d '{"startDate":"2016-01-26", "endDate":"2018-02-02", "minCount": 2700, "maxCount": 3000}' -H "Content-Type: application/json"
+curl --request POST \
+  --url http://localhost:8080/mongo \
+  --header 'Content-Type: application/json' \
+  --data '{"startDate":"2016-01-26", "endDate":"2018-02-02", "minCount": 2700, "maxCount": 3000}'
 ```
 
 Add to in-memory datastore:
