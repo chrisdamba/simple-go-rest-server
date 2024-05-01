@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	// "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/chrisdamba/simple-go-rest-server/db"
 	"github.com/chrisdamba/simple-go-rest-server/models"
@@ -77,6 +78,8 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 	startDate, _ := time.Parse(time.RFC3339, payload.StartDate)
 	endDate, _ := time.Parse(time.RFC3339, payload.EndDate)
 	collection := client.Database(dbName).Collection(colName) 
+
+	/*
 	pipeline := mongo.Pipeline{
 		{
 			{"$project", bson.D{
@@ -95,6 +98,33 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 
 	// Execute the aggregation query
 	cursor, err := collection.Aggregate(context.Background(), pipeline)
+	*/
+
+	query := bson.M{
+		"$expr": bson.M{
+			"$and": []interface{}{
+				bson.M{"$gte": []interface{}{"$createdAt", startDate}},
+				bson.M{"$lte": []interface{}{"$createdAt", endDate}},
+				bson.M{"$gt": []interface{}{bson.M{"$sum": "$count"}, 2000}},
+				bson.M{"$lt": []interface{}{bson.M{"$sum": "$count"}, 4000}},
+			},
+		},
+	}
+
+	// Define the projection
+	projection := bson.M{
+			"_id": 0,
+			"key": 1,
+			"createdAt": 1,
+			"totalCount": bson.M{"$sum": "$count"},
+	}
+
+	// Set the find options with projection
+	findOptions := options.Find().SetProjection(projection)
+
+	// Execute the find query
+	cursor, err := collection.Find(context.Background(), query, findOptions)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
