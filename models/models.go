@@ -8,7 +8,7 @@ import (
 type MongoRecord struct {
 	Key        string    `bson:"key"`
 	CreatedAt  time.Time `bson:"createdAt"`
-	TotalCount int       `bson:"totalCount"`
+	Count 		 []int     `bson:"count"`
 	ID         string    `bson:"id"`
 }
 

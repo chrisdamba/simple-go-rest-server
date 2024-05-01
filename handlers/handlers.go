@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/chrisdamba/simple-go-rest-server/db"
 	"github.com/chrisdamba/simple-go-rest-server/models"
@@ -73,27 +74,35 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Disconnect(context.TODO())
 
-	// Query MongoDB
+	startDate, _ := time.Parse(time.RFC3339, payload.StartDate)
+	endDate, _ := time.Parse(time.RFC3339, payload.EndDate)
 	collection := client.Database(dbName).Collection(colName) 
-	filter := bson.M{
-		"createdAt": bson.M{
-			"$gte": payload.StartDate,
-			"$lte": payload.EndDate,
+	pipeline := mongo.Pipeline{
+		{
+			{"$project", bson.D{
+				{"key", 1},
+				{"createdAt", 1},
+				{"totalCount", bson.D{{"$sum", "$count"}}},
+			}},
 		},
-		"totalCount": bson.M{
-			"$gte": payload.MinCount,
-			"$lte": payload.MaxCount,
+		{
+			{"$match", bson.D{
+				{"createdAt", bson.M{"$gte": startDate, "$lte": endDate}},
+				{"totalCount", bson.M{"$gt": payload.MinCount, "$lt": payload.MaxCount}},
+			}},
 		},
 	}
 
-	cursor, err := collection.Find(context.Background(), filter)
+	// Execute the aggregation query
+	cursor, err := collection.Aggregate(context.Background(), pipeline)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer cursor.Close(context.Background())
 
-	var records []models.MongoRecord
+	// Decode the results
+	var records []bson.M
 	if err = cursor.All(context.Background(), &records); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,9 +121,9 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 			CreatedAt  string `json:"createdAt,omitempty"`
 			TotalCount int    `json:"totalCount,omitempty"`
 		}{
-			Key:        record.Key,
-			CreatedAt:  record.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			TotalCount: record.TotalCount,
+			Key:        record["key"].(string),
+			CreatedAt:  record["createdAt"].(string),
+			TotalCount: record["totalCount"].(int),
 		})
 	}
 

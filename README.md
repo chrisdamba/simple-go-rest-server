@@ -55,12 +55,17 @@ Follow these steps to install the API on your local machine:
      {
        "key": "TAKwGc6Jr4i8Z487",
        "createdAt": ISODate("2017-01-28T01:22:14.398Z"),
-       "totalCount": 2800
+       "count": [500, 400, 450, 550, 300, 150, 350]
      },
      {
        "key": "NAeQ8eX7e5TEg70H",
        "createdAt": ISODate("2017-01-27T08:19:14.135Z"),
-       "totalCount": 2900
+       "count": [540, 400, 450, 550, 300, 160, 350]
+     },
+     {
+       "key": "cCddT2RPqWmUI4Nf",
+       "createdAt": ISODate("2017-01-27T13:22:10.421Z"),
+       "count": [120, 400, 450, 660, 500, 770, 250]
      }
    ])
    ```
@@ -121,3 +126,5 @@ curl http://localhost:8080/in-memory?key=exampleKey
 ## Conclusion
 
 This project showcases the capability of Go to build RESTful APIs without relying on third-party frameworks, using its powerful standard library and efficient concurrency model.
+
+mongodb+srv://challengeUser:WUMgIwNBaydH8Yvu@challenge-xzwqd.mongodb.net/getir-case-study?retryWrites=true
