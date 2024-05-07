@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	// "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -75,8 +76,8 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Disconnect(context.TODO())
 
-	startDate, _ := time.Parse(time.RFC3339, payload.StartDate)
-	endDate, _ := time.Parse(time.RFC3339, payload.EndDate)
+	startDate, _ := time.Parse("2006-01-02", payload.StartDate)
+	endDate, _ := time.Parse("2006-01-02", payload.EndDate)
 	collection := client.Database(dbName).Collection(colName) 
 
 	/*
@@ -91,7 +92,7 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 		{
 			{"$match", bson.D{
 				{"createdAt", bson.M{"$gte": startDate, "$lte": endDate}},
-				{"totalCount", bson.M{"$gt": payload.MinCount, "$lt": payload.MaxCount}},
+				{"totalCount", bson.M{"$gte": payload.MinCount, "$lte": payload.MaxCount}},
 			}},
 		},
 	}
@@ -105,8 +106,8 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 			"$and": []interface{}{
 				bson.M{"$gte": []interface{}{"$createdAt", startDate}},
 				bson.M{"$lte": []interface{}{"$createdAt", endDate}},
-				bson.M{"$gt": []interface{}{bson.M{"$sum": "$count"}, 2000}},
-				bson.M{"$lt": []interface{}{bson.M{"$sum": "$count"}, 4000}},
+				bson.M{"$gte": []interface{}{bson.M{"$sum": "$count"}, payload.MinCount}},
+				bson.M{"$lte": []interface{}{bson.M{"$sum": "$count"}, payload.MaxCount}},
 			},
 		},
 	}
@@ -146,14 +147,24 @@ func FetchFromMongo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, record := range records {
+		var createdAt time.Time
+		var totalCount int
+    if dt, ok := record["createdAt"].(primitive.DateTime); ok {
+      createdAt = dt.Time() // Convert primitive.DateTime to time.Time
+    }
+
+    if tc, ok := record["totalCount"].(float64); ok {
+      totalCount = int(tc) // Safely convert float64 to int
+    }
+
 		formattedRecords = append(formattedRecords, struct {
 			Key        string `json:"key,omitempty"`
 			CreatedAt  string `json:"createdAt,omitempty"`
 			TotalCount int    `json:"totalCount,omitempty"`
 		}{
 			Key:        record["key"].(string),
-			CreatedAt:  record["createdAt"].(string),
-			TotalCount: record["totalCount"].(int),
+			CreatedAt:  createdAt.Format("2006-01-02T15:04:05Z"),
+			TotalCount: totalCount,
 		})
 	}
 
